@@ -1,45 +1,47 @@
 import SwiftUI
 
-struct UsageBar: View {
-    let label: String
-    let usage: RollingUsage
-    var warningThreshold: Double = 0.8
+struct LimitBar: View {
+    let limit: UsageLimit
 
-    private var barColor: Color {
-        if usage.pct >= 1.0    { return .red }
-        if usage.pct >= warningThreshold { return Color(red: 0.93, green: 0.63, blue: 0.42) }
-        return Color(red: 0.38, green: 0.78, blue: 0.62)   // teal-green when safe
+    private var color: Color {
+        switch limit.clampedUsedPercent {
+        case 90...: .red
+        case 70..<90: .orange
+        default: Color(red: 0.35, green: 0.80, blue: 0.63)
+        }
     }
 
     var body: some View {
-        VStack(spacing: 4) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(label)
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.35))
-                    .tracking(1.0)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(limit.label)
+                    .foregroundStyle(.white.opacity(0.84))
                 Spacer()
-                Text("\(usage.turns) turns")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(.white.opacity(0.45))
-                Text(String(format: "%.0f%%", usage.pct * 100))
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .foregroundColor(barColor)
-                    .frame(width: 34, alignment: .trailing)
+                Text("\(Int(limit.clampedUsedPercent.rounded()))% used")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(color)
             }
-            GeometryReader { geo in
+            .font(.system(size: 11))
+
+            GeometryReader { geometry in
                 ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.white.opacity(0.08))
-                        .frame(height: 5)
-                    Capsule()
-                        .fill(barColor)
-                        .frame(width: max(0, geo.size.width * usage.pct), height: 5)
-                        .animation(.easeInOut(duration: 0.4), value: usage.pct)
+                    Capsule().fill(.white.opacity(0.14))
+                    Capsule().fill(color)
+                        .frame(width: geometry.size.width * limit.clampedUsedPercent / 100)
                 }
             }
-            .frame(height: 5)
+            .frame(height: 6)
+
+            if let resetAt = limit.resetAt {
+                Text("Resets \(resetAt.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.53))
+            } else if let description = limit.resetDescription {
+                Text(description)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.white.opacity(0.53))
+            }
         }
-        .padding(.horizontal, 12)
+        .accessibilityElement(children: .combine)
     }
 }

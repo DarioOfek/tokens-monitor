@@ -1,70 +1,38 @@
-# Claude Usage Widget
+# Tokens Monitor
 
-A lightweight macOS desktop widget that shows your Claude Code usage stats in real-time. Sits on the desktop like the macOS calendar widget — always visible, behind every regular app window.
+A small macOS menu bar app for checking Claude, Codex, and Grok Bot account limits. Every progress bar shows **percentage used**. The menu bar shows the highest recently verified percentage; the optional pinned card keeps the full view visible above ordinary windows.
 
-![Claude Usage Widget](https://github.com/DarioOfek/claude-widget/raw/main/screenshot.png)
+## Data sources
 
-## What it shows
+| Card | Source | Notes |
+| --- | --- | --- |
+| Codex · OpenAI | Codex app-server `account/rateLimits/read` | Reads account percentages and reset timestamps. If unavailable, the latest local Codex session rate-limit record is shown as **stale**. |
+| Claude · Anthropic | Signed-in Claude usage page in an embedded browser | Reads the current session and all-model weekly percentages shown by Claude. |
+| Grok Bot · xAI | Signed-in Grok billing dashboard in an embedded browser | Reads weekly included usage for the shared Grok/Grok Bot pool and available extra credits when shown. |
 
-- **5-hour window** — % of your rolling session budget used (cost-weighted)
-- **Since Thursday** — % of your weekly budget used (Claude.ai resets Thursdays)
-- **Today** — turns, output tokens, cache reads
-- **This month** — total turns and tokens
-- **Model breakdown** — top 2 models by token usage
+The app refreshes every 90 seconds and when opened. WebKit retains the Claude and Grok sign-ins across app restarts. The last successful percentages and reset labels are saved locally and shown as stale until a fresh page reading arrives. Account pages are not refreshed while their sign-in window is open, so login forms are not interrupted. No account passwords or session cookies are written by this project; WebKit manages its own website data.
 
-All data is read directly from `~/.claude/projects/**/*.jsonl` — no API key required.
+Claude and Grok account-page parsing depends on their page text. If either site changes, its card will show a connection or stale state until the parser is updated. The app does not substitute local token estimates for account usage.
 
-> **Estimate, Claude Code only.** The % bars approximate Claude.ai's usage page,
-> but they are an estimate: Claude.ai meters token-weighted, per-model consumption
-> using budgets Anthropic doesn't publish, and it aggregates *all* surfaces
-> (web chat, Claude in Chrome). This widget only sees Claude Code, so it reads
-> somewhat lower than claude.ai. Calibrate the budgets in Settings to taste.
+## Build and run
 
-## Install
+Requires macOS 13 or later and Swift command line tools.
 
-Requires macOS 13+ and Swift (ships with Xcode).
-
-```bash
-git clone https://github.com/DarioOfek/claude-widget.git
-cd claude-widget
-make install
-open /Applications/ClaudeWidget.app
+```sh
+make bundle
+open ClaudeWidget.app
 ```
 
-To launch at login: **System Settings → General → Login Items** → add `ClaudeWidget.app`.
+The app appears in the menu bar. Use **Connect** on the Claude and Grok cards to sign in once through the app's embedded account page. Use the pin button to show or hide the floating desktop card. `make install` copies the bundle to `/Applications`.
 
-## Usage
+The executable and bundle keep the existing `ClaudeWidget` name for compatibility; the visible app name is **Tokens Monitor**.
 
-- **Drag** anywhere by clicking the background
-- **Right-click** → Refresh / Settings / Quit
-- **Settings** — pick a plan preset (Pro / Max 5x / Max 20x) or enter custom budgets
+## Icons
 
-## Plan budgets
+The OpenAI and Anthropic card icons were exported from their installed official macOS apps. The xAI icon comes from the official `x.ai` favicon. They identify the services; this independent utility is not endorsed by the vendors.
 
-Budgets are an estimated compute cost (`$`) per window, calibrated so the bars
-track Claude.ai's usage %. Tiers scale the Max-5x budget by the plan multiplier.
+## References
 
-| Plan | 5-hour | Weekly |
-|------|--------|--------|
-| Pro | $160 | $3,280 |
-| Max 5x | $800 | $16,400 |
-| Max 20x | $3,200 | $65,600 |
-
-## Build from source
-
-```bash
-swift build -c release        # build
-make bundle                   # create ClaudeWidget.app
-make install                  # install to /Applications
-```
-
-## How it works
-
-Claude Code writes every conversation turn to JSONL files under `~/.claude/projects/`.
-The widget scans those files every 60 seconds and, for each assistant response,
-computes an estimated compute cost from its token usage — input, output, and cache
-tokens weighted by approximate per-model list prices (Opus ≫ Sonnet ≫ Haiku). It
-sums that cost into the 5-hour rolling window and the Thursday-based weekly window,
-then divides by your plan budget to get the % shown. Raw turn counts (unique
-`promptId` values from user entries) are still shown as context in the bars and the
-Today / This-month sections.
+- [Codex app-server rate-limit method](https://learn.chatgpt.com/docs/app-server)
+- [Claude shared usage limits](https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work)
+- [Grok Bot shared weekly pool](https://docs.x.ai/x-subscription/grok-bot)
