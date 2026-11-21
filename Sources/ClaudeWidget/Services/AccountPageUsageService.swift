@@ -18,7 +18,8 @@ enum AccountPageParser {
             }
         case .xAI:
             guard let plan = section(normalized, after: "Current plan", before: "Account balance") ??
-                    section(normalized, after: "Current plan", before: "Payment details"),
+                    section(normalized, after: "Current plan", before: "Payment details") ??
+                    section(normalized, after: "Renews", before: "Additional usage"),
                   let percent = usedPercent(in: plan) else { return nil }
             limits.append(UsageLimit(id: "weekly", label: "Weekly included usage", usedPercent: percent,
                                      resetAt: nil, resetDescription: resetLine(in: plan)))
@@ -31,7 +32,8 @@ enum AccountPageParser {
         result.source = "Account page"
         result.state = .fresh
         if provider == .xAI,
-           let credits = section(normalized, after: "Credits available", before: "Payment details") {
+           let credits = section(normalized, after: "Credit balance", before: "Payment details") ??
+                        section(normalized, after: "Credits available", before: "Payment details") {
             let firstValue = credits.components(separatedBy: .newlines)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .first { $0.hasPrefix("$") }
