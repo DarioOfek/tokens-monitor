@@ -7,6 +7,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             VisualEffectView(material: .hudWindow, blendingMode: .behindWindow, cornerRadius: 18)
+            Color.black.opacity(0.6)
             ScrollView {
                 VStack(spacing: 7) {
                     header
